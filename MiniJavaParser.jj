@@ -1,0 +1,210 @@
+PARSER_BEGIN(MiniJavaParser)
+
+public class MiniJavaParser {
+    public static void main(String[] args) throws ParseException, TokenMgrError{
+    try {
+        java.io.FileInputStream file = new java.io.FileInputStream(new java.io.File(args[0]));
+        new MiniJavaParser(file).Program();
+        System.out.println("Success");
+    } catch(Exception e) {
+        System.out.println(e);
+        System.out.println("Failed");
+    }
+    }
+}
+
+PARSER_END(MiniJavaParser)
+
+// Ignorar whitespace e quebra de linha
+SKIP : {
+	" "
+	| "\t"
+	| "\n"
+	| "\r"
+    | <"//" (~["\n"])*> /* Comentário em uma linha */
+    | <"/*" (~["*"])* "*" (~["/"] (~["*"])* "*")* "/"> /* Comentário em várias linhas */
+}
+
+/* Inteiro */
+TOKEN: {
+    <INTEGER_LITERAL: (["0"-"9"])+ >
+}
+
+// Sinais de tipagem
+TOKEN: {
+    <INT_ARRAY: <INT> <LBRACKET> <RBRACKET>>
+    | <INT: "int">
+    | <BOOLEAN: "boolean">
+}
+
+// Sinais de pontuação
+TOKEN: {
+    <DOT: ".">
+    | <COMMA: ",">
+    | <SCOLON: ";">
+    | <LPAR: "(">
+    | <RPAR: ")">
+    | <LBRACKET: "[">
+    | <RBRACKET: "]">
+    | <LBRACE: "{">
+    | <RBRACE: "}">
+}
+
+// MainClass, ClassDeclaration e MethodDeclaration
+TOKEN: {
+    <CLASS: "class">
+    | <PUBLIC: "public">
+    | <STATIC: "static">
+    | <VOID: "void">
+    | <MAIN: "main">
+    | <STRING: "String">
+    | <EXTENDS: "extends">
+    | <RETURN: "return">
+}
+
+// Statements
+TOKEN: {
+    <IF: "if">
+    | <ELSE: "else">
+    | <PRINT: "System.out.println">
+    | <WHILE: "while">
+    | <EQUALS: "=">
+}
+
+// Expressões
+TOKEN: {
+    <TRUE: "true">
+    | <FALSE: "false">
+    | <THIS: "this">
+    | <NOT: "!">
+    | <NEW: "new">
+    | <LENGTH: "length">
+}
+
+// Operadores Binários
+TOKEN: {
+    <BINARY_OP: <LOGIC_AND> 
+        | <LESS_THAN>
+        | <PLUS>
+        | <MINUS>
+        | <TIMES>
+    >
+    | <#LOGIC_AND: "&&">
+    | <#LESS_THAN: "<">
+    | <#PLUS: "+">
+    | <#MINUS: "-">
+    | <#TIMES: "*">
+}
+
+// Identifier ::= <IDENTIFIER>
+// An identifier is a sequence of letters, digits, and underscores, starting with a letter. Uppercase letters are
+// distinguished from lowercase. In this reference manual the symbol id stands for an identifier.
+TOKEN : {
+    <IDENTIFIER: <LETTER> (<LETTER> | <DIGIT> | "_")*>
+    | <#LETTER: ["a"-"z", "A"-"Z"] >
+    | <#DIGIT: ["0"-"9"]>
+}
+
+void Goal() :
+{}
+{
+    (Program())*
+}
+
+void Program():
+{}
+{
+    MainClass() (LOOKAHEAD(2) ClassDecl())*
+}
+
+void MainClass():
+{}
+{
+    <CLASS> <IDENTIFIER> <LBRACE> <PUBLIC> <STATIC> <VOID> <MAIN>
+    <LPAR> <STRING> <LBRACKET> <RBRACKET> <IDENTIFIER> <RPAR> <LBRACE>
+    Statement() <RBRACE> <RBRACE>
+}
+
+void ClassDecl():
+{}
+{
+    <CLASS> <IDENTIFIER> (
+        <LBRACE> (VarDecl())* (MethodDecl())* <RBRACE>
+        | <EXTENDS> <IDENTIFIER>  <LBRACE> (VarDecl())* (MethodDecl())* <RBRACE>
+    )
+}
+
+void Statement():
+{}
+{
+    <LBRACE> (Statement())* <RBRACE>
+    | <IF> <LPAR> Expr() <RPAR> Statement() <ELSE> Statement()
+    | <WHILE> <LPAR> Expr() <RPAR> Statement()
+    | <PRINT> <LPAR> Expr() <RPAR> <SCOLON>
+    | <IDENTIFIER> (
+        <EQUALS> Expr() <SCOLON>
+        | <LBRACKET> Expr() <RBRACKET> "=" Expr() <SCOLON>
+    )
+}
+
+void VarDecl():
+{}
+{
+    Type() <IDENTIFIER> <SCOLON>
+}
+
+void MethodDecl():
+{}
+{
+    <PUBLIC> Type() <IDENTIFIER> <LPAR> (FormalList())? <RPAR>
+    <LBRACE> (LOOKAHEAD(2) VarDecl())* (Statement())* <RETURN> Expr() <SCOLON> <RBRACE> // (...)*
+}
+
+void Expr():
+{}
+{
+    (<INTEGER_LITERAL>
+    | <TRUE>
+    | <FALSE>
+    | <IDENTIFIER>
+    | <THIS>
+    | <NEW> (
+        <INT> <LBRACKET> Expr() <RBRACKET>
+        | <IDENTIFIER> <LPAR> <RPAR>
+    )
+    | <NOT> Expr()
+    | <LPAR> Expr() <RPAR>)
+    (LOOKAHEAD(2) (<BINARY_OP> Expr() | <LBRACKET> Expr() <RBRACKET> | <DOT> (<LENGTH> | <IDENTIFIER> <LPAR> (ExpList())? <RPAR>)))*
+}
+
+void ExpList():
+{}
+{
+    Expr() (ExpRest())*
+}
+
+void ExpRest():
+{}
+{
+    <COMMA> Expr()
+}
+
+void Type():
+{}
+{
+    <INT> (<LBRACKET> <RBRACKET>)*
+    | <BOOLEAN>
+    | <IDENTIFIER>
+}
+
+void FormalList():
+{}
+{
+    Type() <IDENTIFIER> (FormalRest())*
+}
+
+void FormalRest():
+{}
+{
+    <COMMA> Type() <IDENTIFIER>
+}

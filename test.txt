@@ -1,0 +1,28 @@
+class Teste{
+    public static void main(String[] args){{
+        /* Seguir a gramática a risca implica colocar
+         * dois {} na main para ter mais de um statement;
+         * é feio, mas é correto.
+         */
+        System.out.println(3);
+        if(true) {
+            System.out.println(4);
+            System.out.println(5);
+        }
+        else{
+            System.out.println(6);
+        }
+        System.out.println(7);
+        while(3 < 4){
+            System.out.println(8);
+        }
+    }}
+}
+
+class NewTeste{
+    int [] a;
+    public int Method(int b){
+        a[3 + 4] = 0;
+        return a;
+    }
+}
